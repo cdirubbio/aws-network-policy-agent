@@ -142,7 +142,11 @@ func (f *FirewallRuleProcessor) ComputeMapEntriesFromEndpointRules(firewallRules
 
 	for key, value := range cidrsMap {
 		log().Infof("Updating Map with IP Key: %s", string(key))
-		_, firewallMapKey, _ := net.ParseCIDR(string(key))
+		_, firewallMapKey, err := net.ParseCIDR(string(key))
+		if err != nil {
+			log().Errorf("Error parsing CIDR, skipping key: %s l4RuleCount: %d except: %v err: %v", key, len(value.L4Info), value.Except, err)
+			continue
+		}
 		// Key format: Prefix length (4 bytes) followed by 4/16byte IP address
 		firewallKey := utils.ComputeTrieKey(*firewallMapKey, f.enableIPv6)
 
@@ -200,7 +204,11 @@ func checkAndDeriveL4InfoFromAnyMatchingCIDRs(firewallRule string,
 
 	_, ipToCheck, _ := net.ParseCIDR(firewallRule)
 	for cidr, cidrFirewallInfo := range cidrsMap {
-		_, cidrEntry, _ := net.ParseCIDR(cidr)
+		_, cidrEntry, err := net.ParseCIDR(cidr)
+		if err != nil {
+			log().Errorf("Skipping malformed IP %s", string(cidr))
+			continue
+		}
 		if cidrEntry.Contains(ipToCheck.IP) {
 			log().Debugf("Found CIDR match or IP: %s in CIDR: %s", firewallRule, cidr)
 			// If CIDR contains IP, check if it is part of any except block under CIDR. If yes, do not include cidrL4Info

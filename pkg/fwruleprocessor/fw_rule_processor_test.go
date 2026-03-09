@@ -66,6 +66,17 @@ func TestFWRuleProcessor_ComputeMapEntriesFromEndpointRules_IPv4(t *testing.T) {
 			},
 			want: []string{string(nodeIPKey), string(utils.ComputeTrieKey(*catchAllCIDR, false))},
 		},
+		{
+			name: "Mangled IP CIDR skipped",
+			args: args{
+				[]EbpfFirewallRules{
+					{
+						IPCidr: "/32",
+					},
+				},
+			},
+			want: []string{string(nodeIPKey)},
+		},
 	}
 
 	for _, tt := range tests {
